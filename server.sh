@@ -8,9 +8,10 @@ CONTENT_LENGTH_REGEX='Content-Length:\s(.*?)'
 BODY_REGEX='(.*?)=(.*?)'
 
 function handle_POST_login() {
-  RESPONSE=$(cat post-login.http | \
-    sed "s/{{cookie_name}}/$INPUT_NAME/" | \
-    sed "s/{{cookie_value}}/$INPUT_VALUE/")
+    RESPONSE="HTTP/1.1 301\r\nLocation: http://localhost:3000/\r\nSet-Cookie: $INPUT_NAME=$INPUT_VALUE"
+  # RESPONSE=$(cat post-login.http | \
+  #   sed "s/{{cookie_name}}/$INPUT_NAME/" | \
+  #   sed "s/{{cookie_value}}/$INPUT_VALUE/")
 }
 
 
@@ -35,20 +36,21 @@ function handleRequest() {
     if [ ! -z $CONTENT_LENGTH ]; then
         while read -n$CONTENT_LENGTH -t1 body; do
             echo "body is: $body"
-            INPUT_EMAIL=$(echo $body | sed -E "s/$BODY_REGEX/\1/")
-            INPUT_PASSWORD=$(echo $body | sed -E "s/$BODY_REGEX/\2/")
+            INPUT_NAME=$(echo $body | sed -E "s/$BODY_REGEX/\1/")
+            INPUT_VALUE=$(echo $body | sed -E "s/$BODY_REGEX/\2/")
         done
 
     fi
     echo "Request is: $REQUEST"
     echo "Content-Length: $CONTENT_LENGTH"
     echo "FORM IS"
-    echo Email: $INPUT_EMAIL Password: $INPUT_PASSWORD
+    echo Email: $INPUT_NAME Password: $INPUT_VALUE
     case "$REQUEST" in 
-        "GET /")                 RESPONSE="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n$(cat login.html)";;
+        "GET /")                 RESPONSE="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nWelcome: $COOKIE_VALUE";;
+        "GET /login")            RESPONSE="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n$(cat login.html)";;
         "POST /login")           handle_POST_login;;
         "GET /static/login.css") RESPONSE=$(handleStaticFiles "$REQUEST");;
-        *)                       RESPONSE="HTTP/1.1 400 NotFound\r\n\r\n\r\nNot Found";; 
+        *)                       RESPONSE="HTTP/1.1 400 NotFound\r\n\r\n\r\nNot Found";;
     esac
     echo "response is: $RESPONSE"
     echo -e  $RESPONSE > response
